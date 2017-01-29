@@ -1,0 +1,17 @@
+﻿
+@{
+    ViewBag.Title = "Create";
+}
+
+<h2>Create</h2>
+
+@using (Html.BeginForm("Create", "Document", FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+
+    <input type="file" name="FileUpload1" /><br />
+    <input type="file" name="FileUpload2" /><br />
+    <input type="file" name="FileUpload3" /><br />
+    <input type="file" name="FileUpload4" /><br />
+    <input type="file" name="FileUpload5" /><br />
+    <input type="submit" name="Submit" id="Submit" value="Upload" />
+}

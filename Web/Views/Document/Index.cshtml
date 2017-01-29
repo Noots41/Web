@@ -1,0 +1,56 @@
+﻿@model IEnumerable<Model.Document>
+
+@{
+    ViewBag.Title = "Документы";
+}
+
+<h2>Index</h2>
+
+<p>
+    @Html.ActionLink("Create New", "Create")
+</p>
+
+<style type="text/css">
+    .grid {
+        margin: 4px;
+        border-collapse: collapse;
+        width: 600px;
+    }
+
+    .head {
+        background-color: #E8E8E8;
+        font-weight: bold;
+        color: #FFF;
+    }
+
+    .grid th, .grid td {
+        border: 1px solid #C0C0C0;
+        padding: 5px;
+    }
+
+    .alt {
+        background-color: #E8E8E8;
+        color: #000;
+    }
+
+    .product {
+        width: 200px;
+        font-weight: bold;
+    }
+</style>
+ 
+<div>
+    @{
+        var grid = new WebGrid(Model, defaultSort: "Id");
+    }
+    @grid.GetHtml(tableStyle: "grid",
+                headerStyle: "head",
+                alternatingRowStyle: "alt",
+                columns: grid.Columns(
+                    grid.Column("Name", format:@<text>@item.Name</text>),
+                    grid.Column("Date", format:@<i>@item.Date</i>),
+                    grid.Column("Author", format:@<text>@item.Author.Login</text>),
+                    grid.Column("Open", format:@<text>@Html.ActionLink("GetFile", "GetFile", new { id = item.Id })</text>)))
+</div>
+
+
