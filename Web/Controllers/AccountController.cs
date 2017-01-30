@@ -9,10 +9,9 @@ using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
 using Web.Models;
-using Helpers;
 using Model;
 using System.Web.Security;
-using NHibernate;
+using Services;
 
 namespace Web.Controllers
 {
@@ -22,8 +21,11 @@ namespace Web.Controllers
         private ApplicationSignInManager _signInManager;
         private ApplicationUserManager _userManager;
 
+        private IAuthorRepository repository { get; set; }
+
         public AccountController()
         {
+            repository = new NHAuthorRepository();
         }
 
         public AccountController(ApplicationUserManager userManager, ApplicationSignInManager signInManager)
@@ -76,30 +78,18 @@ namespace Web.Controllers
             {
                 return View(model);
             }
-            var result = CheckUser(model.Login, model.Password);
+
+            var result = repository.CheckUser(model.Login, model.Password);
             
             if (result)
             {
-                
                 FormsAuthentication.SetAuthCookie(model.Login, true);
                 return RedirectToLocal(returnUrl);
-
             }
             ModelState.AddModelError("", "Неудачная попытка входа.");
             return View(model);
         }
-
-        private bool CheckUser(string login, string password)
-        {
-            using (var session = NHibernateHelper.OpenSession())
-            {
-                var count = session.QueryOver<Author>().And(x => x.Login == login && x.Password == password).RowCount();
-                return count == 1;
-            }
-        }
-
-
-       
+        
         //
         // GET: /Account/Register
         [AllowAnonymous]
@@ -117,38 +107,17 @@ namespace Web.Controllers
         {
             if (ModelState.IsValid)
             {
-                Author user = null;
-                using (var session = NHibernateHelper.OpenSession())
-                {
-                    user = session.QueryOver<Author>().Where(u => u.Login == model.Login).SingleOrDefault();
-                }
+                
+                //using (var session = NHibernateHelper.OpenSession())
+                //{
+                //    user = session.QueryOver<Author>().Where(u => u.Login == model.Login).SingleOrDefault();
+                //}
+                Author user = repository.GetAll().Where(u => u.Login == model.Login).SingleOrDefault();
                 if (user == null)
                 {
                     // создаем нового пользователя
-                    using (var session = NHibernateHelper.OpenSession())
-                    {
-                        //db.Users.Add(new User { Email = model.Name, Password = model.Password, Age = model.Age });
-                        //db.SaveChanges();
-                        //user = db.Users.Where(u => u.Email == model.Name && u.Password == model.Password).FirstOrDefault();
-                        //ITransaction tx = session.BeginTransaction();
-                        //var sql = session.CreateSQLQuery("INSERT into Author(Id, FirstName, LastName, Login, Password) select i.Id, i.FirstName, i.LastName, i.Login, i.Password from Author i").ExecuteUpdate();
-                        //tx.Commit();
-                        //user = session.QueryOver<Author>().Where(u => u.Login == model.Login && u.Password == model.Password).SingleOrDefault();
-                        using (ITransaction transaction = session.BeginTransaction())
-                        {
-                            try
-                            {
-                                var newUser = new Author { FirstName = model.FirstName, LastName = model.LastName, Login = model.Login, Password = model.Password };
-                                session.Save(newUser);
-                                transaction.Commit();
-                            }
-                            catch (HibernateException)
-                            {
-                                transaction.Rollback();
-                                throw;
-                            }
-                        }
-                    }
+                    user = repository.Create(model.FirstName, model.LastName, model.Login, model.Password);
+                    
                     // если пользователь удачно добавлен в бд
                     if (user != null)
                     {

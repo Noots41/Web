@@ -4,9 +4,10 @@ using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 
+
 namespace Web.Models
 {
-    // Чтобы добавить данные профиля для пользователя, можно добавить дополнительные свойства в класс ApplicationUser. Дополнительные сведения см. по адресу: http://go.microsoft.com/fwlink/?LinkID=317594.
+    //Чтобы добавить данные профиля для пользователя, можно добавить дополнительные свойства в класс ApplicationUser.Дополнительные сведения см. по адресу: http://go.microsoft.com/fwlink/?LinkID=317594.
     public class ApplicationUser : IdentityUser
     {
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager)
@@ -30,8 +31,6 @@ namespace Web.Models
             return new ApplicationDbContext();
         }
 
-        public System.Data.Entity.DbSet<Model.Document> Documents { get; set; }
 
-        public System.Data.Entity.DbSet<Model.Author> Authors { get; set; }
     }
 }

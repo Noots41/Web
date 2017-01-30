@@ -1,7 +1,5 @@
 ﻿using Helpers;
 using Model;
-using NHibernate;
-using NHibernate.Criterion;
 using Services;
 using System;
 using System.Collections.Generic;
@@ -31,17 +29,9 @@ namespace Web.Controllers
 
         public FilePathResult GetFile(int id)
         {
-            string fileName = "";
             string path = AppDomain.CurrentDomain.BaseDirectory + "uploads/";
-            using (var session = NHibernateHelper.OpenSession())
-            {
-                var criteria = session.CreateCriteria(typeof(Document));
-                criteria.Add(Restrictions.Eq("Id", id));
-                criteria.SetMaxResults(1);
-                var doc = criteria.List<Document>().FirstOrDefault();
-                fileName = doc.Name;
-            }
-            return File(path + fileName, "text/plain", fileName);
+            var doc = repository.Load(id);
+            return File(path + doc.Name, "text/plain", doc.Name);
         }
 
         public ActionResult Create()
@@ -60,23 +50,7 @@ namespace Web.Controllers
                 byte[] fileData = new byte[fileLength];
                 fileStream.Read(fileData, 0, fileLength);
 
-                using (var session = NHibernateHelper.OpenSession())
-                {
-                    using (var transaction = session.BeginTransaction())
-                    {
-                        try
-                        {
-                            var newDoc = new Document { Name = fileName, Author = session.Get<Author>(1), Date = DateTime.Now };
-                            session.Save(newDoc);
-                            transaction.Commit();
-                        }
-                        catch (HibernateException)
-                        {
-                            transaction.Rollback();
-                            throw;
-                        }
-                    }
-                }
+                var doc = repository.Create(fileName);
                 fileStream.Close();
             }
             return View();

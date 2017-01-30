@@ -8,7 +8,7 @@ namespace Services
     /// <typeparam name="T"></typeparam>
     public interface IEntityRepository<T> where T : class
     {
-        T Create();
+        T Create(string Name);
         T Load(int Id);
         bool Delete(int Id);
         void Update(T newDoc);
