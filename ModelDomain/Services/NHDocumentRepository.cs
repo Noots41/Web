@@ -13,7 +13,7 @@ namespace Services
     public class NHDocumentRepository : IDocumentRepository
     {
 
-        Document IEntityRepository<Document>.Create(string fileName)
+        Document IDocumentRepository.Create(string name, Author author)
         {
             var newDoc = new Document();
             using (var session = NHibernateHelper.OpenSession())
@@ -22,13 +22,12 @@ namespace Services
                 {
                     try
                     {
-                        newDoc = new Document { Name = fileName, Author = session.Get<Author>(1), Date = DateTime.Now };
+                        newDoc = new Document { Name = name, Author = author, Date = DateTime.Now };
                         session.Save(newDoc);
                         transaction.Commit();
                     }
                     catch (HibernateException)
                     {
-                        transaction.Rollback();
                         throw;
                     }
                 }
@@ -86,11 +85,25 @@ namespace Services
                 docs = criteria.List<Document>().ToList();
                 foreach (var doc in docs)
                 {
-                    if(doc.Name.Length > 30)
-                    doc.Name = doc.Name.Remove(30) + "...";
+                    if (doc.Name.Length > 30)
+                        doc.Name = doc.Name.Remove(30) + "...";
                 }
             }
             return docs;
+        }
+
+        Document IEntityRepository<Document>.Create(string Name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool CheckDoc(string name)
+        {
+            using (var session = NHibernateHelper.OpenSession())
+            {
+                var count = session.QueryOver<Document>().And(x => x.Name == name).RowCount();
+                return count == 1;
+            }
         }
     }
 }

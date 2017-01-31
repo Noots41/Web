@@ -26,6 +26,9 @@ namespace Services
                 {
                     try
                     {
+                        //The pseudo-syntax for INSERT statements is: INSERT INTO EntityName properties_list select_statement.Some points to note:
+                        //Only the INSERT INTO...SELECT...form is supported; not the INSERT INTO ... VALUES...form.
+                        //select_statement can be any valid HQL select query
                         newUser = new Author { FirstName = firstName, LastName = lastName, Login = login, Password = password };
                         session.Save(newUser);
                         transaction.Commit();
@@ -74,6 +77,6 @@ namespace Services
                 return count == 1;
             }
         }
-        
+
     }
 }

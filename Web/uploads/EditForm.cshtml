@@ -1,0 +1,143 @@
+﻿@using EleWise.ELMA.BPM.Web.Security.ExtensionPoints
+@using EleWise.ELMA.BPM.Web.Security.Extensions
+@using EleWise.ELMA.Documents.Web.Models
+@using EleWise.ELMA.Model.Entities
+@using EleWise.ELMA.Model.Metadata
+@using EleWise.ELMA.Model.Types.Settings
+@using EleWise.ELMA.Model.Views
+@using EleWise.ELMA.Security.Models
+@using EleWise.ELMA.Security.Types.Settings
+@using EleWise.ELMA.Serialization
+@using EleWise.ELMA.Services
+@using EleWise.ELMA.Web.Mvc.Html.Forms
+@using ViewType = EleWise.ELMA.Model.Views.ViewType
+@model EleWise.ELMA.Documents.Docflow.Web.Models.AcquaintanceInfo
+           
+@{
+    var customFormViewsModel = Html.GetCustomFormViewsModel(Model.Entity, EleWise.ELMA.Model.Views.ViewType.Create, false, false);
+    var contextViewShow = Model.ExecInfo != null && Model.ExecInfo.View != null && Model.ExecInfo.View.Items.Count > 0;
+
+    var securityService = Locator.GetServiceNotNull<EleWise.ELMA.Security.ISecurityService>();
+    var user = Locator.GetServiceNotNull<EleWise.ELMA.Security.Services.IAuthenticationService>().GetCurrentUser<EleWise.ELMA.Security.Models.IUser>();
+    var hasPastPermission = securityService.HasPermission(user, EleWise.ELMA.Tasks.PermissionProvider.CreatePastTaskPermission);
+}
+
+
+@Html.TableFormStart(f => f.ViewType(ViewType.Edit).Id("createDocumentTaskTable"))
+    @Html.EditableProperty(m => m.Entity.Subject, v => v.Class = "dft_table_td_inputs")
+    <tr>
+        <td class="captionCell">
+            @Html.Caption(SR.T("Кому"), true)
+        </td>
+        <td>
+            @Html.UserWithGroupEditor(Model.ComplexExecutor, m => m.ComplexExecutor, a =>
+            {
+                a.Html.style.width = "400px";
+                a.Html["focusset"] = true;
+                if (Model.Workers != null) 
+                {
+                    a.EntityFilterProvider = UserFilterByWorkersProvider.UID;
+                    a.EntityFilterData = string.Join(";", Model.Workers.Select(ClassSerializationHelper.SerializeObjectByJson));
+                }
+                a.TypeSettingsAction = settingsAction =>
+                {
+                    var сomplexExecutorSettings = (ComplexExecutorSettings)settingsAction;
+                    сomplexExecutorSettings.UserSettings.CheckReplacement = true;
+                    сomplexExecutorSettings.UserSettings.ShowPersonalGroup = true;
+                };
+            }) 
+          
+        </td>
+    </tr>
+    @if (!Model.HideEndDate)
+    {
+        <tr>
+            <td class="captionCell">
+                @Html.Caption(SR.T("Срок ознакомления"), true)
+            </td>
+            <td>
+                <table class="ultable" width="100%">
+                    <tr>
+                        <td>
+                            @Html.Editor("Entity.ExecutionDate", "DamperDateTime", new 
+                            {
+                                minDate = hasPastPermission ? DateTime.MinValue : DateTime.Now, 
+                                DamperText = SR.T("Указать время завершения")
+                            })
+                            @Html.ValidationMessage("Entity.ExecutionDate")
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    }
+    <tr id="trPlanWorkLog" style="display:@(Model.ShowPlanWorkLog ? "" : "none")">
+        <td class="captionCell">
+            @(SR.T("Плановые трудозатраты"))
+        </td>
+        <td>
+            @Html.HiddenFor(m => m.ShowPlanWorkLog)
+            @Html.Editor(m => m.PlanWorkLog)
+            @Html.Description(m => m.PlanWorkLog, a => { a.ShowDescription = true; a.Description = SR.T("Каждому исполнителю задачи будет установлено указанное время трудозатрат."); })
+        </td>
+    </tr>
+    <tr>
+        <td class="captionCell">
+            @Html.Caption(m => m.Entity.NotificateMe)
+        </td>
+        <td>
+            @Html.Editor(m => m.Entity.NotificateMe)
+        </td>
+    </tr>
+    <tr>
+        <td class="captionCell">
+            @Html.Caption(SR.T("Версии документов"), true)
+        </td>
+        <td class="t-document">
+            @{ var i = 0; }
+            <table width="100%">
+                @foreach (var item in Model.Entity.Items)
+                {
+                    <tr>
+                        <td style="@(i != Model.Entity.Items.Count - 1 ? "border-bottom: 1px solid #CCCCCC;" : "")padding: 5px;">
+                            @Html.Partial("EditorTemplates/Entities/DocumentTaskItem", item, 
+                                          new ViewDataDictionary { { "Prefix", string.Format("Entity.Items[{0}]", i) } })
+                            <input type="hidden" name="@string.Format(ViewData.TemplateInfo.GetFullHtmlFieldName("Entity.Items[{0}].Document.Id"), i)" value="@item.Document.Id" />
+                        </td>
+                    </tr>              
+                    i++;
+                }
+            </table>
+        </td>
+    </tr>
+@Html.TableFormEnd()
+@if (contextViewShow)
+{
+    @Html.Partial("DocumentTask/ContextView", Model.ExecInfo)       
+}
+@(Html.CollapsiblePanel().Id("AdditionSendToAcq").Header(SR.T("Дополнительно")).Expanded(true).SaveState(false).Class("separator-yellow")
+.Content(@<text>
+    @Html.TableFormStart(EleWise.ELMA.Model.Views.ViewType.Edit)
+    @Html.EditableProperty(m => m.Entity.Category)
+    @Html.EditableProperty(m => m.Note)
+    @if (customFormViewsModel != null && customFormViewsModel.HasCommonView && customFormViewsModel.CustomPropCount > 0)
+    {
+        @customFormViewsModel.CustomView
+    }
+    @Html.TableFormEnd()                                                                                                                            
+</text>).Render())
+
+
+@if (!hasPastPermission)
+{
+<script type="text/javascript">
+    $(document).ready(function() {
+        elma.ValidationRulesManager.addRule('@(Html.IDFor(m => m.Entity.ExecutionDate))', 'add', { greaterTodayDateTime: true, messages: { greaterTodayDateTime: "@(SR.T("Дата должна быть не меньше текущей"))" } });
+    });
+</script>
+}
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('a.t-button.light-blue').hide();
+	})
+</script>

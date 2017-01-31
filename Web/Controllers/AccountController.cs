@@ -18,8 +18,6 @@ namespace Web.Controllers
     [Authorize]
     public class AccountController : Controller
     {
-        private ApplicationSignInManager _signInManager;
-        private ApplicationUserManager _userManager;
 
         private IAuthorRepository repository { get; set; }
 
@@ -27,36 +25,7 @@ namespace Web.Controllers
         {
             repository = new NHAuthorRepository();
         }
-
-        public AccountController(ApplicationUserManager userManager, ApplicationSignInManager signInManager)
-        {
-            UserManager = userManager;
-            SignInManager = signInManager;
-        }
-
-        public ApplicationSignInManager SignInManager
-        {
-            get
-            {
-                return _signInManager ?? HttpContext.GetOwinContext().Get<ApplicationSignInManager>();
-            }
-            private set
-            {
-                _signInManager = value;
-            }
-        }
-
-        public ApplicationUserManager UserManager
-        {
-            get
-            {
-                return _userManager ?? HttpContext.GetOwinContext().GetUserManager<ApplicationUserManager>();
-            }
-            private set
-            {
-                _userManager = value;
-            }
-        }
+        
 
         //
         // GET: /Account/Login
@@ -83,7 +52,7 @@ namespace Web.Controllers
             
             if (result)
             {
-                FormsAuthentication.SetAuthCookie(model.Login, true);
+                FormsAuthentication.SetAuthCookie(model.Login, model.RememberMe);
                 return RedirectToLocal(returnUrl);
             }
             ModelState.AddModelError("", "Неудачная попытка входа.");
@@ -107,17 +76,11 @@ namespace Web.Controllers
         {
             if (ModelState.IsValid)
             {
-                
-                //using (var session = NHibernateHelper.OpenSession())
-                //{
-                //    user = session.QueryOver<Author>().Where(u => u.Login == model.Login).SingleOrDefault();
-                //}
                 Author user = repository.GetAll().Where(u => u.Login == model.Login).SingleOrDefault();
                 if (user == null)
                 {
                     // создаем нового пользователя
                     user = repository.Create(model.FirstName, model.LastName, model.Login, model.Password);
-                    
                     // если пользователь удачно добавлен в бд
                     if (user != null)
                     {
@@ -130,8 +93,6 @@ namespace Web.Controllers
                     ModelState.AddModelError("", "Пользователь с таким логином уже существует");
                 }
             }
-
-            
             // Появление этого сообщения означает наличие ошибки; повторное отображение формы
             return View(model);
         }
@@ -145,38 +106,10 @@ namespace Web.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult LogOff()
         {
-            AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
-            return RedirectToAction("Index", "Home");
+            FormsAuthentication.SignOut();
+            return RedirectToAction("Login", "Account");
         }
-
-        //
-        // GET: /Account/ExternalLoginFailure
-        [AllowAnonymous]
-        public ActionResult ExternalLoginFailure()
-        {
-            return View();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                if (_userManager != null)
-                {
-                    _userManager.Dispose();
-                    _userManager = null;
-                }
-
-                if (_signInManager != null)
-                {
-                    _signInManager.Dispose();
-                    _signInManager = null;
-                }
-            }
-
-            base.Dispose(disposing);
-        }
-
+        
         #region Вспомогательные приложения
         // Используется для защиты от XSRF-атак при добавлении внешних имен входа
         private const string XsrfKey = "XsrfId";
